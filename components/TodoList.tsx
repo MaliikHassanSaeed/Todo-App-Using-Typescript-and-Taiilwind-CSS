@@ -1,8 +1,9 @@
+import React, { useState } from "react";
 import { AddTodo } from "./AddTodo";
-import { Todo } from "./Todo";
-import { useState } from "react";
+import { Todo as TodoComponent } from "./Todo";
+import { Todo } from "./types";
 
-const initialTodoList = [
+const initialTodoList: Omit<Todo, "id">[] = [
   { todo: "Finish portfolio site", urgency: true, completed: false },
   { todo: "Call Mom", urgency: false, completed: false },
   { todo: "Check emails", urgency: false, completed: true },
@@ -12,7 +13,7 @@ const initialTodoList = [
 ];
 
 export function TodoList() {
-  const [todoList, setTodoList] = useState(
+  const [todoList, setTodoList] = useState<Todo[]>(
     initialTodoList.map((todo, index) => ({ ...todo, id: index }))
   );
   const [todoInput, setTodoInput] = useState("");
@@ -21,20 +22,29 @@ export function TodoList() {
   const [sortUrgencyDescending, setSortUrgencyDescending] = useState(false);
   const [searchInput, setSearchInput] = useState("");
 
-  function setTodoListWithIncrementingIds(todos) {
+  function setTodoListWithIncrementingIds(todos: Todo[]) {
     setTodoList(todos.map((todo, index) => ({ ...todo, id: index })));
   }
 
-  const todosToDisplay = getTodosToDisplay(
-    todoList,
-    showUrgentChecked,
-    sortUrgencyDescending,
-    searchInput
-  );
+  function getTodosToDisplay(): Todo[] {
+    const filtered = todoList
+      .filter((todo) =>
+        showUrgentChecked ? todo.urgency : true
+      )
+      .filter((todo) =>
+        todo.todo.toLowerCase().includes(searchInput.toLowerCase())
+      );
+
+    return sortUrgencyDescending
+      ? [...filtered].sort((a, b) => Number(b.urgency) - Number(a.urgency))
+      : filtered;
+  }
+
+  const todosToDisplay = getTodosToDisplay();
 
   return (
     <div className="min-h-screen bg-slate-900 text-gray-200 p-6 font-mono">
-      <h1 className="text-4xl  font-serif text-center text-indigo-400 mb-6">
+      <h1 className="text-4xl font-serif text-center text-indigo-400 mb-6">
         📝 Todo List App
       </h1>
 
@@ -47,7 +57,6 @@ export function TodoList() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-1">
             <input
@@ -138,17 +147,16 @@ export function TodoList() {
         ) : (
           <ul className="space-y-2">
             {todosToDisplay.map((todo) => (
-              <Todo
-                item={todo}
+              <TodoComponent
                 key={todo.id}
-                checked={todo.completed}
+                item={todo}
                 onChange={(newCheckedStatus) => {
-                  const newTodoList = [...todoList];
-                  newTodoList.splice(todo.id, 1, {
+                  const updatedList = [...todoList];
+                  updatedList.splice(todo.id!, 1, {
                     ...todo,
                     completed: newCheckedStatus
                   });
-                  setTodoListWithIncrementingIds(newTodoList);
+                  setTodoListWithIncrementingIds(updatedList);
                 }}
               />
             ))}
@@ -157,18 +165,4 @@ export function TodoList() {
       </div>
     </div>
   );
-
-  function getTodosToDisplay(todoList, showUrgentChecked, sort, searchInput) {
-    const filteredByUrgency = showUrgentChecked
-      ? todoList.filter((todo) => todo.urgency)
-      : todoList;
-
-    const filteredBySearch = filteredByUrgency.filter((todo) => {
-      return todo.todo?.toLowerCase().includes(searchInput.toLowerCase());
-    });
-
-    return sort
-      ? [...filteredBySearch].sort((a, b) => b.urgency - a.urgency)
-      : filteredBySearch;
-  }
 }
